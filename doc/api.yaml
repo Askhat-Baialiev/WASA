@@ -1,0 +1,627 @@
+openapi: 3.0.0
+servers:
+  - url: "http://localhost:3000"
+info:
+  title: WASAText API
+  description: |-
+    REST API for WASAText, a WhatsApp-like messaging application built for the
+    Web and Software Architecture course. Users log in with a name, hold direct
+    and group conversations, send text and image messages, react with emojis,
+    and forward messages between existing chats.
+  version: 1.0.0
+
+tags:
+  - name: login
+  - name: user
+  - name: group
+  - name: conversation
+  - name: message
+  - name: reaction
+
+paths:
+  /session:
+    post:
+      tags: ["login"]
+      operationId: doLogin
+      summary: Log in / register the user
+      description: |-
+        Logs in the user by name. If a user with that name does not exist it is
+        created. The returned identifier is used as the Bearer token for all
+        authenticated requests.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 16
+                  pattern: '^.*?$'
+                  example: Maria
+              required: [name]
+      responses:
+        "201":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  identifier: { type: string, description: User id / auth token }
+                  name: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /liveness:
+    get:
+      tags: ["login"]
+      operationId: liveness
+      summary: Liveness probe
+      description: Returns 200 while the server is up.
+      security: []
+      responses:
+        "200":
+          description: Server is alive
+
+  /users:
+    get:
+      tags: ["user"]
+      operationId: searchUsers
+      summary: Search users by name
+      description: Returns users whose name contains the given substring.
+      parameters:
+        - name: search
+          in: query
+          required: false
+          description: Substring to match against user names.
+          schema:
+            type: string
+            minLength: 0
+            maxLength: 16
+            pattern: '^.*?$'
+      responses:
+        "200":
+          description: Matching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /users/me/username:
+    put:
+      tags: ["user"]
+      operationId: setMyUserName
+      summary: Change my display name
+      description: |-
+        Updates the caller's display name. Names are unique, so requesting a name
+        already owned by another user fails with 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 3
+                  maxLength: 16
+                  pattern: '^.*?$'
+              required: [name]
+      responses:
+        "200":
+          description: Name updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /users/me/photo:
+    put:
+      tags: ["user"]
+      operationId: setMyPhoto
+      summary: Change my profile picture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  description: Base64 data URI of an uploaded image.
+                  minLength: 0
+                  maxLength: 3000000
+                  pattern: '^.*$'
+              required: [photo]
+      responses:
+        "200":
+          description: Photo updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /groups:
+    post:
+      tags: ["group"]
+      operationId: createGroup
+      summary: Create a group
+      description: Creates a group conversation containing the creator plus the listed members.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: '^.*$'
+                members:
+                  type: array
+                  minItems: 0
+                  maxItems: 100
+                  items: { type: string }
+              required: [name]
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/members:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+    get:
+      tags: ["group"]
+      operationId: getGroupMembers
+      summary: List conversation members
+      responses:
+        "200":
+          description: Member list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/User" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      tags: ["group"]
+      operationId: addToGroup
+      summary: Add a user to a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId: { type: string }
+              required: [userId]
+      responses:
+        "204":
+          description: User added
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/members/me:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+    delete:
+      tags: ["group"]
+      operationId: leaveGroup
+      summary: Leave a group
+      responses:
+        "204":
+          description: Left the group
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/name:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+    put:
+      tags: ["group"]
+      operationId: setGroupName
+      summary: Rename a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: '^.*$'
+              required: [name]
+      responses:
+        "204":
+          description: Group renamed
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/photo:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+    put:
+      tags: ["group"]
+      operationId: setGroupPhoto
+      summary: Set a group picture
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  description: Base64 data URI of an uploaded image.
+                  minLength: 0
+                  maxLength: 3000000
+                  pattern: '^.*$'
+              required: [photo]
+      responses:
+        "204":
+          description: Group picture updated
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations:
+    get:
+      tags: ["conversation"]
+      operationId: getMyConversations
+      summary: List my conversations
+      description: Returns every conversation the logged-in user belongs to, most recent first.
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Conversation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    post:
+      tags: ["conversation"]
+      operationId: createDirectConversation
+      summary: Start a direct conversation
+      description: |-
+        Opens a 1:1 conversation with another user. If one already exists it is
+        returned (200) instead of creating a duplicate (201).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId: { type: string, description: The other participant's id }
+              required: [userId]
+      responses:
+        "200":
+          description: Existing conversation returned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+        "201":
+          description: Conversation created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Conversation" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+    get:
+      tags: ["conversation"]
+      operationId: getConversation
+      summary: Get a conversation with its messages
+      description: |-
+        Returns the conversation header and the full message history. Opening a
+        conversation marks all of its messages as read by the caller (this is
+        what drives read receipts / blue checkmarks for the sender).
+      responses:
+        "200":
+          description: Conversation and messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversation: { $ref: "#/components/schemas/Conversation" }
+                  messages:
+                    type: array
+                    items: { $ref: "#/components/schemas/Message" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/messages:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+    post:
+      tags: ["message"]
+      operationId: sendMessage
+      summary: Send a message
+      description: |-
+        Sends a message into the conversation. A message may carry text, an
+        uploaded image (base64 data URI — not a URL), or both; at least one is
+        required. Optionally it can reply to an existing message.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  minLength: 0
+                  maxLength: 4096
+                  pattern: '^.*$'
+                photo:
+                  type: string
+                  description: Base64 data URI of an uploaded image.
+                  minLength: 0
+                  maxLength: 3000000
+                  pattern: '^.*$'
+                replyToMessageId:
+                  type: string
+                  minLength: 0
+                  maxLength: 64
+                  pattern: '^.*$'
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/messages/{messageId}:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+      - $ref: "#/components/parameters/messageId"
+    delete:
+      tags: ["message"]
+      operationId: deleteMessage
+      summary: Delete a message
+      description: Deletes a message. Only its sender may delete it.
+      responses:
+        "204":
+          description: Message deleted
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/messages/{messageId}/forward:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+      - $ref: "#/components/parameters/messageId"
+    post:
+      tags: ["message"]
+      operationId: forwardMessage
+      summary: Forward a message
+      description: |-
+        Forwards a message into another, already existing conversation that the
+        caller is a member of. The copy is flagged as "forwarded".
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                targetConversationId:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  pattern: '^.*$'
+              required: [targetConversationId]
+      responses:
+        "201":
+          description: Message forwarded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Message" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+  /conversations/{conversationId}/messages/{messageId}/reaction:
+    parameters:
+      - $ref: "#/components/parameters/conversationId"
+      - $ref: "#/components/parameters/messageId"
+    put:
+      tags: ["reaction"]
+      operationId: commentMessage
+      summary: React to a message
+      description: |-
+        Sets the caller's single emoji reaction on the message. A user may have
+        at most one reaction per message, so any previous one is replaced.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                emoticon:
+                  type: string
+                  minLength: 1
+                  maxLength: 16
+                  pattern: '^.*$'
+                  example: "👍"
+              required: [emoticon]
+      responses:
+        "201":
+          description: Reaction set
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Comment" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+    delete:
+      tags: ["reaction"]
+      operationId: uncommentMessage
+      summary: Remove my reaction
+      description: Removes the caller's reaction from the message, if any.
+      responses:
+        "204":
+          description: Reaction removed
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "500": { $ref: "#/components/responses/InternalServerError" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |-
+        The user identifier returned by POST /session, sent as
+        `Authorization: Bearer <identifier>`.
+
+  parameters:
+    conversationId:
+      name: conversationId
+      in: path
+      required: true
+      description: Conversation identifier (UUID).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+        pattern: '^.*$'
+    messageId:
+      name: messageId
+      in: path
+      required: true
+      description: Message identifier (UUID).
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 64
+        pattern: '^.*$'
+
+  schemas:
+    User:
+      title: User
+      type: object
+      properties:
+        identifier: { type: string }
+        name: { type: string }
+        photo: { type: string, description: Base64 data URI or empty string }
+
+    Conversation:
+      title: Conversation
+      type: object
+      properties:
+        conversationId: { type: string }
+        name: { type: string, description: Group name, or the other user's name for a direct chat }
+        photo: { type: string }
+        isGroup: { type: boolean }
+        lastMessage: { type: string }
+        lastMessageTime: { type: string }
+
+    Comment:
+      title: Comment
+      description: A single emoji reaction on a message.
+      type: object
+      properties:
+        commentId: { type: string }
+        messageId: { type: string }
+        userId: { type: string }
+        userName: { type: string, description: Display name of the reaction's author }
+        emoticon: { type: string }
+
+    Message:
+      title: Message
+      type: object
+      properties:
+        messageId: { type: string }
+        conversationId: { type: string }
+        senderId: { type: string }
+        sender: { type: string, description: Sender display name }
+        text: { type: string }
+        photo: { type: string, description: Base64 data URI of an attached image }
+        timestamp: { type: string }
+        status:
+          type: string
+          enum: [sent, delivered, read]
+        replyToId: { type: string }
+        forwarded: { type: boolean }
+        comments:
+          type: array
+          items: { $ref: "#/components/schemas/Comment" }
+
+  responses:
+    BadRequest:
+      description: The request was not compliant with the documentation.
+    Unauthorized:
+      description: The access token is missing or invalid.
+    Forbidden:
+      description: The caller is not allowed to perform this action.
+    Conflict:
+      description: The request conflicts with the current state (e.g. name already taken).
+    NotFound:
+      description: The requested resource does not exist.
+    InternalServerError:
+      description: The server encountered an internal error. Further info in server logs.
+
+security:
+  - bearerAuth: []
