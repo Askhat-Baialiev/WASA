@@ -11,7 +11,7 @@ import (
 // GET /users?search=<query>
 // Returns users whose name contains the query (case-insensitive LIKE).
 // Used by the UI when starting a new direct conversation.
-func (rt *_router) getUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params, _ reqcontext.RequestContext) {
+func (rt *_router) searchUsers(w http.ResponseWriter, r *http.Request, _ httprouter.Params, _ reqcontext.RequestContext) {
 	query := r.URL.Query().Get("search")
 	if query == "" {
 		query = r.URL.Query().Get("name")

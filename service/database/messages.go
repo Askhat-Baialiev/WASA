@@ -55,6 +55,7 @@ func (db *appdbimpl) SendMessage(conversationID, senderID, text, photo, replyToI
 //   - sent      → no other members read it yet
 //   - delivered → every other member exists (not us alone)
 //   - read      → every other member has it in message_reads
+//
 // Sender name is joined in for display.
 func (db *appdbimpl) GetMessages(conversationID string) ([]Message, error) {
 	rows, err := db.c.Query(`

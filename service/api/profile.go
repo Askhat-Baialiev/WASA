@@ -19,7 +19,7 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 // Body: {"name": "..."}
 // Changes the caller's display name. Names are unique, so trying to take a name
 // that another user already owns fails with 409 and a clear error message.
-func (rt *_router) setMyUsername(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {
+func (rt *_router) setMyUserName(w http.ResponseWriter, r *http.Request, _ httprouter.Params, ctx reqcontext.RequestContext) {
 	var req struct {
 		Name string `json:"name"`
 	}

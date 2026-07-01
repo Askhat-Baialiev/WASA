@@ -64,7 +64,7 @@ paths:
       description: Returns 200 while the server is up.
       security: []
       responses:
-        "200":
+        "204":
           description: Server is alive
 
   /users:
@@ -572,7 +572,7 @@ components:
       type: object
       properties:
         conversationId: { type: string }
-        name: { type: string, description: Group name, or the other user's name for a direct chat }
+        name: { type: string, description: "Group name, or the other user's name for a direct chat" }
         photo: { type: string }
         isGroup: { type: boolean }
         lastMessage: { type: string }

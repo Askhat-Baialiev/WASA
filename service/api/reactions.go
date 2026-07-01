@@ -13,7 +13,7 @@ import (
 // Sets the caller's single emoji reaction on the message (replacing any previous
 // one — a user may have at most one reaction per message). The response carries
 // the reaction's author name.
-func (rt *_router) addReaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+func (rt *_router) commentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	conversationID := ps.ByName("conversationId")
 	messageID := ps.ByName("messageId")
 
@@ -54,7 +54,7 @@ func (rt *_router) addReaction(w http.ResponseWriter, r *http.Request, ps httpro
 
 // DELETE /conversations/:conversationId/messages/:messageId/reaction
 // Removes the caller's reaction on the message (if any).
-func (rt *_router) removeReaction(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+func (rt *_router) uncommentMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	conversationID := ps.ByName("conversationId")
 	messageID := ps.ByName("messageId")
 

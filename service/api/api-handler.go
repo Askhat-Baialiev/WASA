@@ -8,8 +8,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.GET("/liveness", rt.liveness)
 
 	// Authenticated — Bearer token required (rt.wrap)
-	rt.router.GET("/users", rt.wrap(rt.getUsers))
-	rt.router.PUT("/users/me/username", rt.wrap(rt.setMyUsername))
+	rt.router.GET("/users", rt.wrap(rt.searchUsers))
+	rt.router.PUT("/users/me/username", rt.wrap(rt.setMyUserName))
 	rt.router.PUT("/users/me/photo", rt.wrap(rt.setMyPhoto))
 
 	rt.router.GET("/conversations", rt.wrap(rt.getMyConversations))
@@ -27,8 +27,8 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/conversations/:conversationId/messages/:messageId", rt.wrap(rt.deleteMessage))
 	rt.router.POST("/conversations/:conversationId/messages/:messageId/forward", rt.wrap(rt.forwardMessage))
 
-	rt.router.PUT("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.addReaction))
-	rt.router.DELETE("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.removeReaction))
+	rt.router.PUT("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.commentMessage))
+	rt.router.DELETE("/conversations/:conversationId/messages/:messageId/reaction", rt.wrap(rt.uncommentMessage))
 
 	return rt.router
 }
