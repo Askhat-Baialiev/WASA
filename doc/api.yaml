@@ -35,6 +35,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 name:
                   type: string
@@ -50,9 +51,10 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Structured JSON payload.
                 properties:
                   identifier: { type: string, description: User id / auth token }
-                  name: { type: string }
+                  name: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
         "400": { $ref: "#/components/responses/BadRequest" }
         "500": { $ref: "#/components/responses/InternalServerError" }
 
@@ -90,6 +92,8 @@ paths:
             application/json:
               schema:
                 type: array
+                minItems: 0
+                maxItems: 1000
                 items: { $ref: "#/components/schemas/User" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalServerError" }
@@ -108,6 +112,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 name:
                   type: string
@@ -130,6 +135,7 @@ paths:
     put:
       tags: ["user"]
       operationId: setMyPhoto
+      description: Updates the caller profile picture (base64 image data URI).
       summary: Change my profile picture
       requestBody:
         required: true
@@ -137,6 +143,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 photo:
                   type: string
@@ -167,6 +174,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 name:
                   type: string
@@ -177,7 +185,7 @@ paths:
                   type: array
                   minItems: 0
                   maxItems: 100
-                  items: { type: string }
+                  items: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
               required: [name]
       responses:
         "201":
@@ -195,6 +203,7 @@ paths:
     get:
       tags: ["group"]
       operationId: getGroupMembers
+      description: Returns the list of users participating in the conversation.
       summary: List conversation members
       responses:
         "200":
@@ -203,6 +212,8 @@ paths:
             application/json:
               schema:
                 type: array
+                minItems: 0
+                maxItems: 1000
                 items: { $ref: "#/components/schemas/User" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -210,6 +221,7 @@ paths:
     post:
       tags: ["group"]
       operationId: addToGroup
+      description: Adds a user to the group. Only current members may add others.
       summary: Add a user to a group
       requestBody:
         required: true
@@ -217,8 +229,9 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
-                userId: { type: string }
+                userId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
               required: [userId]
       responses:
         "204":
@@ -235,6 +248,7 @@ paths:
     delete:
       tags: ["group"]
       operationId: leaveGroup
+      description: The caller leaves the group. When the last member leaves the conversation is deleted.
       summary: Leave a group
       responses:
         "204":
@@ -251,6 +265,7 @@ paths:
     put:
       tags: ["group"]
       operationId: setGroupName
+      description: Renames the group. Only current members may rename it.
       summary: Rename a group
       requestBody:
         required: true
@@ -258,6 +273,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 name:
                   type: string
@@ -280,6 +296,7 @@ paths:
     put:
       tags: ["group"]
       operationId: setGroupPhoto
+      description: Updates the group picture (base64 image data URI). Only current members may change it.
       summary: Set a group picture
       requestBody:
         required: true
@@ -287,6 +304,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 photo:
                   type: string
@@ -317,6 +335,8 @@ paths:
             application/json:
               schema:
                 type: array
+                minItems: 0
+                maxItems: 1000
                 items: { $ref: "#/components/schemas/Conversation" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "500": { $ref: "#/components/responses/InternalServerError" }
@@ -333,6 +353,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 userId: { type: string, description: The other participant's id }
               required: [userId]
@@ -370,10 +391,13 @@ paths:
             application/json:
               schema:
                 type: object
+                description: Structured JSON payload.
                 properties:
                   conversation: { $ref: "#/components/schemas/Conversation" }
                   messages:
                     type: array
+                    minItems: 0
+                    maxItems: 1000
                     items: { $ref: "#/components/schemas/Message" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
@@ -397,6 +421,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 text:
                   type: string
@@ -460,6 +485,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 targetConversationId:
                   type: string
@@ -496,6 +522,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: Structured JSON payload.
               properties:
                 emoticon:
                   type: string
@@ -561,52 +588,57 @@ components:
   schemas:
     User:
       title: User
+      description: A registered user account.
       type: object
       properties:
-        identifier: { type: string }
-        name: { type: string }
+        identifier: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        name: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
         photo: { type: string, description: Base64 data URI or empty string }
 
     Conversation:
       title: Conversation
+      description: A chat between two users, or a group conversation.
       type: object
       properties:
-        conversationId: { type: string }
+        conversationId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
         name: { type: string, description: "Group name, or the other user's name for a direct chat" }
-        photo: { type: string }
-        isGroup: { type: boolean }
-        lastMessage: { type: string }
-        lastMessageTime: { type: string }
+        photo: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        isGroup: { type: boolean, description: "Boolean flag" }
+        lastMessage: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        lastMessageTime: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
 
     Comment:
       title: Comment
       description: A single emoji reaction on a message.
       type: object
       properties:
-        commentId: { type: string }
-        messageId: { type: string }
-        userId: { type: string }
+        commentId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        messageId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        userId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
         userName: { type: string, description: Display name of the reaction's author }
-        emoticon: { type: string }
+        emoticon: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
 
     Message:
       title: Message
+      description: A single text or image message within a conversation.
       type: object
       properties:
-        messageId: { type: string }
-        conversationId: { type: string }
-        senderId: { type: string }
+        messageId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        conversationId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        senderId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
         sender: { type: string, description: Sender display name }
-        text: { type: string }
+        text: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
         photo: { type: string, description: Base64 data URI of an attached image }
-        timestamp: { type: string }
+        timestamp: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
         status:
           type: string
           enum: [sent, delivered, read]
-        replyToId: { type: string }
-        forwarded: { type: boolean }
+        replyToId: { type: string, description: "String value", minLength: 0, maxLength: 4096, pattern: "^.*$" }
+        forwarded: { type: boolean, description: "Boolean flag" }
         comments:
           type: array
+          minItems: 0
+          maxItems: 1000
           items: { $ref: "#/components/schemas/Comment" }
 
   responses:
